@@ -1,10 +1,11 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import Metolib from '@fmidev/metolib';
-import './App.css';
-import {Map, Marker, TileLayer} from "react-leaflet";
+import { Map, Marker, TileLayer } from "react-leaflet";
 import styled from "styled-components";
 import L from "leaflet";
 import Sidebar from './Sidebar';
+import './App.css';
+import rainy from './images/rainy-day.png';
 
 const MapContainer = styled(Map)`
     width: calc(100vw - 300px);
@@ -26,14 +27,17 @@ L.Icon.Default.mergeOptions({
 
 function App() {
   const [observationLocations, setObservationLocations] = useState([]);
-
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [airTemperature, setAirTemperature] = useState([]);
+  const [cityName, setCityName] = useState('Helsinki');
 
-  useEffect(function fetchObservationLocations() {
+  useEffect(
+    function fetchObservationLocations() {
     const connection = new Metolib.WfsConnection();
+    console.log('connection ',connection);
     if (connection.connect('http://opendata.fmi.fi/wfs', 'fmi::observations::weather::cities::multipointcoverage')) {
       connection.getData({
-        begin: Date.now() - 60e3 * 60 * 24 * 6,
+        begin: Date.now() - 60 * 24 * 60 * 1000,
         end: Date.now(),
         requestParameter: "t,snowdepth,r_1h",
         timestep: 60 * 60 * 1000,
@@ -46,10 +50,11 @@ function App() {
             });
             return;
           }
+         setAirTemperature(data.locations);
 
           setObservationLocations(data.locations
             .map(loc => {
-              const [lon, lat] = loc.info.position.map(parseFloat);
+              const [lat, lon] = loc.info.position.map(parseFloat);
               return {...loc, position: {lat, lon}}
             })
           );
@@ -60,28 +65,67 @@ function App() {
     }
   }, []);
 
+  const handleSelect = (e) => {
+      setCityName(e.target.value);  
+  }
+
   const position = [65, 26];
   const map = (
     <MapContainer center={position} zoom={6}>
       <TileLayer
-        url='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
         attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
         subdomains='abcd'
         maxZoom={19}
       />
-      {observationLocations.map(loc => <Marker position={[loc.position.lat, loc.position.lon]}
-                                               key={loc.info.id} onClick={() => setSelectedLocation(loc.info.id)}>
-      </Marker>)}
+      {observationLocations.map((loc, indx) => 
+      <Marker position={[loc.position.lat, loc.position.lon]}
+        key={indx} onClick={() => setSelectedLocation(loc.info.id)}>
+      </Marker>
+      )
+      }
     </MapContainer>
   );
 
   return (
-    <div className="App">
-      <Sidebar selectedLocationId={selectedLocation} observationLocations={observationLocations}/>
-      {map}
+    <div>
+        <select
+        id="select" 
+        value={cityName}
+        onChange={handleSelect}
+        >
+            <option value="Helsinki">Helsinki</option>
+            <option value="Espoo">Espoo</option>
+            <option value="Vantaa">Vantaa</option> 
+        </select>
+        
+        <div className='box'>
+            {airTemperature.map((temp, indx) => {
+                let dateString;
+                if(temp.info.region === cityName) {
+                    if(temp.data.t.timeValuePairs[24].value === isNaN) {
+                        dateString = JSON.stringify(new Date(temp.data.t.timeValuePairs[24].time + 7200000));
+                        return;
+                    } else {
+                        dateString = JSON.stringify(new Date(temp.data.t.timeValuePairs[23].time + 7200000)); 
+                          
+                    }
+                    dateString = dateString.slice(1,-1);
+                    dateString = dateString.slice(0, 16);
+                    return ( 
+                        <div key={indx}>
+                        <h4>{dateString}</h4>  
+                        <h4>{cityName} {temp.data.t.timeValuePairs[24].value !== isNaN ? temp.data.t.timeValuePairs[23].value : temp.data.t.timeValuePairs[23].value} °C
+                        {temp.data.r_1h.timeValuePairs[23].value > 0 ? <div>It's rainy <img src={rainy} id="rainy" alt="rainy" /></div>: <p>It is dry</p>}</h4>
+                        </div>
+                    )}
+            })} 
+            {console.log('selectedLocation ', selectedLocation)}
+        </div>
+        {/* <Sidebar selectedLocationId={selectedLocation} observationLocations={observationLocations}/> */}
+        {map}
     </div>
   );
-
 }
 
 export default App;

@@ -1,0 +1,18 @@
+.box{
+   width: 150px;
+   border: 1px solid;
+   padding: 30px;
+   border-radius: 8%;
+   margin: 20px;
+   box-shadow: 3px 2px 2px  #888888;
+   background-color: #e3f1f3;
+}
+
+#select{
+    margin: 20px; 
+}
+#rainy{
+    position: relative;
+    top: 20px;
+    width: 30%;
+}
