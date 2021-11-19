@@ -115,6 +115,8 @@ function App() {
                     return ( 
                         <div key={indx}>
                         <h4>{dateString}</h4>  
+                        {/* timeValuePairs value on array place 24 and 25 show sometimes NaN I try to deal with that here. Need a bit implementation 
+                        Anyway at this moment show what I wanted array index 23 */}
                         <h4>{cityName} {temp.data.t.timeValuePairs[24].value !== isNaN ? temp.data.t.timeValuePairs[23].value : temp.data.t.timeValuePairs[23].value} °C
                         {temp.data.r_1h.timeValuePairs[23].value > 0 ? <div>It's rainy <img src={rainy} id="rainy" alt="rainy" /></div>: <p>It is dry</p>}</h4>
                         </div>
